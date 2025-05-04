@@ -5,19 +5,21 @@ import { HomeCarousel } from "@/components/Screens/home/HomeCarousel";
 import { HomeSuggestions } from "@/components/Screens/home/HomeSuggestions";
 import { router, useNavigation } from "expo-router";
 import { useEffect } from "react";
-import { Alert } from "react-native";
+import { Alert, FlatList } from "react-native";
 import { Button, ScrollView, Text, XStack, YStack } from "tamagui";
 import { DefaultButton } from "@/components/Shared/DefaultButton";
 import { useAuth } from "@/context/AuthProvider";
 import { supabase } from "@/supabase";
 import { Product } from "@/types/product";
 import { ProductDealCard } from "@/components/Screens/home/ProductDealCard";
+import { ProductCardResult } from "@/components/Screens/search/ProductCardResult";
 
 export default function Home() {
 	const { session } = useAuth();
 	const navigation = useNavigation();
 
 	const [deals, setDeals] = useState<Product[]>([]);
+	const [allProducts, setAllProducts] = useState<Product[]>([]);
 
 	const onClickAuth = () => router.push("/login");
 
@@ -50,6 +52,16 @@ export default function Home() {
 		}
 	}, []);
 
+	const getAllProducts = useCallback(async () => {
+		try {
+			const { data = [] } = await supabase.from("products").select("*");
+			console.log(data)
+			setAllProducts(data as Product[]);
+		} catch (error) {
+			console.log("error", error);
+		}
+	}, []);
+
 	useEffect(() => {
 		navigation.setOptions({
 			headerSearchShown: true,
@@ -57,7 +69,8 @@ export default function Home() {
 		});
 
 		getDeals();
-	}, [navigation.setOptions, getDeals]);
+		getAllProducts();
+	}, [navigation.setOptions, getDeals, getAllProducts]);
 
 	return (
 		<ScrollView f={1}>
@@ -85,6 +98,22 @@ export default function Home() {
 						Sign in Securely
 					</DefaultButton>
 				)}
+			</YStack>
+			<YStack bg={"white"} w="100%" p={20} gap={20}>
+				<Text als={"flex-start"} fos={20} fow={"bold"}>
+					All Products
+				</Text>
+				<FlatList
+					data={allProducts}
+					keyExtractor={(item) => item.id.toString()}
+					ItemSeparatorComponent={() => <YStack h={10} />}
+					renderItem={({ item: product }) => (
+						<ProductCardResult
+							product={product}
+							onPress={() => onProductPress(product)}
+						/>
+					)}
+				/>
 			</YStack>
 		</ScrollView>
 	);
